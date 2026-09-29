@@ -1,0 +1,21 @@
+# Python
+apps/api/.venv/
+__pycache__/
+*.py[cod]
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Next.js
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
