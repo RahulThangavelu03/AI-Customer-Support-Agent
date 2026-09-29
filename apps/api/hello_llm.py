@@ -38,6 +38,9 @@ customers = {
 
 
 
+
+
+
 orders = {
     "O1001": {
         "id": "O1001",
@@ -45,6 +48,8 @@ orders = {
         "product": "Wireless Headphones",
         "price": 4999,
         "status": "delivered",
+        "days_since_delivery": 3,
+        "refunded": False,
     },
     "O1002": {
         "id": "O1002",
@@ -52,6 +57,8 @@ orders = {
         "product": "Mechanical Keyboard",
         "price": 3499,
         "status": "delivered",
+        "days_since_delivery": 45,
+        "refunded": False,
     },
     "O1003": {
         "id": "O1003",
@@ -59,9 +66,10 @@ orders = {
         "product": "Smart Watch",
         "price": 7999,
         "status": "shipped",
+        "days_since_delivery": None,
+        "refunded": False,
     },
 }
-
 
 def get_order(order_id):
     return orders.get(order_id)
@@ -69,6 +77,57 @@ def get_order(order_id):
 
 def get_customer(customer_id):
     return customers.get(customer_id)
+
+
+def validate_refund(order_id):
+
+    order = orders.get(order_id)
+
+    if order is None:
+        
+
+        return {
+            "eligible": False,
+            "reason": "Order not found.",
+        }
+
+    if order["refunded"]:
+
+          return {
+            "eligible": False,
+            "reason": "This Order has Already beed refunded.",
+        }
+
+    if order["status"]!="delivered":
+
+          return {
+            "eligible": False,
+            "reason": "The Order has not been Recieved by the customer  yet.",
+        }
+    
+    if order["days_since_delivery"] > 30:
+
+          return {
+            "eligible": False,
+            "reason": "The Order is beyond refund period.",
+        }
+        
+
+    return {
+        "eligible": True,
+        "reason": "Order is eligible for a refund.",
+        "order_id": order_id,
+        "refund_amount": order["price"],
+    }
+
+
+
+
+
+
+
+
+
 
 tools = [
     {
@@ -107,18 +166,48 @@ tools = [
         },
     },
 
+    
+    "type": "function",
+    "function": {
+        "name": "validate_refund",
+        "description": "Check whether an order is eligible for a refund according to the refund policy.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string",
+                    "description": "The unique ID of the order to validate for a refund.",
+                }
+            },
+            "required": ["order_id"],
+        },
+    
+},
+
     }
 ]
 
 
 def run_agent(user_question):
 
-    messages = [
-        {
-            "role": "user",
-            "content": user_question,
-        }
-    ]
+ 
+    messages=[{
+    "role": "system",
+    "content": """
+You are an e-commerce customer support agent.
+
+Rules:
+- Use tools whenever customer, order, or refund information is needed.
+- Never invent or assume facts.
+- Never create or change refund policy rules.
+- Refund eligibility must come from validate_refund.
+- Only state facts provided by the tools.
+- Do not speculate about why an order has a particular status.
+- Do not give unsolicited advice.
+- Keep every response to 1-2 short sentences.
+"""
+},]
+
 
     response = client.chat.completions.create(
         model="openrouter/free",
@@ -143,6 +232,9 @@ def run_agent(user_question):
 
             elif tool_call.function.name == "get_order":
                result = get_order(arguments["order_id"])
+
+            elif tool_call.function.name=="validate_refund":
+                result=validate_refund(arguments["order_id"])
 
 
 
@@ -170,3 +262,4 @@ question = input("You: ")
 answer = run_agent(question)
 
 print("Agent:", answer)
+
