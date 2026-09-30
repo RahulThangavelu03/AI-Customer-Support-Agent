@@ -79,6 +79,52 @@ def get_customer(customer_id):
     return customers.get(customer_id)
 
 
+
+def process_refund(order_id):
+    order= orders.get(order_id)
+
+
+    if order is None:
+
+        return{
+
+
+            "success":False,
+            "reason":"order not found",
+        }
+
+    if order["refunded"]:
+        return {
+
+             "success":False,
+             "reason":"This order has already been refunded",
+
+        }
+
+
+    validation = validate_refund(order_id)
+
+
+    if not validation["eligible"]:
+        return {
+
+            "success":False,
+            "reason":validation["reason"]
+        }
+
+    order["refunded"]=True
+
+    return {
+
+
+
+        "success":True,
+        "order_id":order_id,
+        "refund_amount":order["price"],
+        "message":"Refunded processed successfully",
+    }
+
+
 def validate_refund(order_id):
 
     order = orders.get(order_id)
@@ -184,16 +230,42 @@ tools = [
     
 },
 
-    }
+ "type":"function",
+
+  "function":{
+
+    "name":"process_refund",
+     "description":"Process a refund for an eligible order . The backend will verify refund eligibility before processing .",
+     "parameters":{
+ 
+          "type":"object",
+          "properties":{
+
+            "order_id":{
+
+                "type":"string",
+                "description":"The unique ID of the order to refund",
+            }
+          },
+
+         "required":["order_id"],
+
+     },
+  },
+
+    },
 ]
+
+
+
 
 
 def run_agent(user_question):
 
- 
-    messages=[{
-    "role": "system",
-    "content": """
+    messages = [
+        {
+            "role": "system",
+            "content": """
 You are an e-commerce customer support agent.
 
 Rules:
@@ -201,42 +273,65 @@ Rules:
 - Never invent or assume facts.
 - Never create or change refund policy rules.
 - Refund eligibility must come from validate_refund.
+- If the customer explicitly asks to process a refund, validate the order first.
+- Only process a refund if validate_refund says the order is eligible.
 - Only state facts provided by the tools.
-- Do not speculate about why an order has a particular status.
+- Do not speculate.
 - Do not give unsolicited advice.
 - Keep every response to 1-2 short sentences.
-"""
-},]
+""",
+        },
+        {
+            "role": "user",
+            "content": user_question,
+        }
+    ]
 
+    while True:
 
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=messages,
-        tools=tools,
-    )
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=messages,
+            tools=tools,
+        )
 
-    message = response.choices[0].message
+        message = response.choices[0].message
 
-    if message.tool_calls:
+        # No tool requested → final answer
+        if not message.tool_calls:
+            return message.content
 
+        # Add the LLM's tool request to the conversation
         messages.append(message)
 
+        # Execute every tool requested by the LLM
         for tool_call in message.tool_calls:
 
-            
-            
+            tool_name = tool_call.function.name
+
             arguments = json.loads(tool_call.function.arguments)
 
-            if tool_call.function.name == "get_customer":
-              result = get_customer(arguments["customer_id"])  
+            print("Tool requested:", tool_name)
+            print("Arguments:", arguments)
 
-            elif tool_call.function.name == "get_order":
-               result = get_order(arguments["order_id"])
+            if tool_name == "get_customer":
+                result = get_customer(arguments["customer_id"])
 
-            elif tool_call.function.name=="validate_refund":
-                result=validate_refund(arguments["order_id"])
+            elif tool_name == "get_order":
+                result = get_order(arguments["order_id"])
 
+            elif tool_name == "validate_refund":
+                result = validate_refund(arguments["order_id"])
 
+            elif tool_name == "process_refund":
+                result = process_refund(arguments["order_id"])
+
+            else:
+                result = {
+                    "error": f"Unknown tool: {tool_name}"
+                }
+
+            print("Tool result:", result)
 
             messages.append(
                 {
@@ -246,15 +341,6 @@ Rules:
                 }
             )
 
-        final_response = client.chat.completions.create(
-            model="openrouter/free",
-            messages=messages,
-            tools=tools,
-        )
-
-        return final_response.choices[0].message.content
-
-    return message.content
 
 
 question = input("You: ")
