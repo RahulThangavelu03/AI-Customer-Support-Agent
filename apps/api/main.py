@@ -9,6 +9,26 @@ app = FastAPI()
 
 
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from agent import run_agent
+
+
+app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
 
 class ChatRequest(BaseModel):
 
@@ -24,11 +44,10 @@ def get_health():
 @app.post("/chat")
 def chat_with_agent(input:ChatRequest):
 
-    answer = run_agent(input.message)
+    result = run_agent(input.message)
 
-    return{
+    return result
 
-        "response":answer
-    }
+    
 
 

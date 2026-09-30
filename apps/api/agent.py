@@ -23,6 +23,8 @@ client = OpenAI(
 
 def run_agent(user_question):
 
+    activity_logs = []
+
     messages = [
         {
             "role": "system",
@@ -58,8 +60,13 @@ Rules:
 
         message = response.choices[0].message
 
+        
+
         if not message.tool_calls:
-            return message.content
+           return {
+        "response": message.content,
+        "activity_logs": activity_logs,
+    }
 
         messages.append(message)
 
@@ -68,8 +75,13 @@ Rules:
             tool_name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments)
 
-            print("Tool requested:", tool_name)
-            print("Arguments:", arguments)
+            
+            activity_logs.append({
+
+                "type":"tool_result",
+                "tool":"tool_name",
+                 "result":"result",
+            })
 
             if tool_name == "get_customer":
                 result = get_customer(arguments["customer_id"])
