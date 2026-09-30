@@ -1,0 +1,22 @@
+REFUND POLICY
+
+1. Refund Eligibility
+- Refunds are available only for delivered orders.
+- A refund request must be made within 30 days of delivery.
+- An order that has already been refunded cannot be refunded again.
+
+2. Refund Amount
+- If eligible, the refund amount is the original order price.
+- No additional refund amount may be created or assumed.
+
+3. Refund Denial
+A refund must be denied when:
+- The order does not exist.
+- The order has not been delivered.
+- More than 30 days have passed since delivery.
+- The order has already been refunded.
+
+4. Refund Processing
+- The system must validate the order against these rules before processing a refund.
+- The customer support agent must never override these rules.
+- The backend validation result is authoritative.

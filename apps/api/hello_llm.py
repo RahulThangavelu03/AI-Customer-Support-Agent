@@ -78,6 +78,10 @@ def get_order(order_id):
 def get_customer(customer_id):
     return customers.get(customer_id)
 
+def get_refund_policy():
+    with open("refund_policy.txt" ,"r") as file:
+     return file.read()
+
 
 
 def process_refund(order_id):
@@ -253,6 +257,19 @@ tools = [
      },
   },
 
+
+
+
+    "type": "function",
+    "function": {
+        "name": "get_refund_policy",
+        "description": "Get the e-commerce refund policy.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    
+},
     },
 ]
 
@@ -325,6 +342,9 @@ Rules:
 
             elif tool_name == "process_refund":
                 result = process_refund(arguments["order_id"])
+
+            elif tool_name=="get_refund_policy":
+                result =  get_refund_policy()
 
             else:
                 result = {
