@@ -64,25 +64,25 @@ Rules:
 
         if not message.tool_calls:
            return {
-        "response": message.content,
-        "activity_logs": activity_logs,
+                "response": message.content,
+                 "activity_logs": activity_logs,
     }
 
         messages.append(message)
 
+       
         for tool_call in message.tool_calls:
-
             tool_name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments)
 
-            
+            # Log the tool request
             activity_logs.append({
-
-                "type":"tool_result",
-                "tool":"tool_name",
-                 "result":"result",
+                "type": "tool_requested",
+                "tool": tool_name,
+                "arguments": arguments,
             })
 
+            # Execute the requested tool
             if tool_name == "get_customer":
                 result = get_customer(arguments["customer_id"])
 
@@ -103,14 +103,16 @@ Rules:
                     "error": f"Unknown tool: {tool_name}"
                 }
 
-            print("Tool result:", result)
+            # Log the actual tool result
+            activity_logs.append({
+                "type": "tool_result",
+                "tool": tool_name,
+                "result": result,
+            })
 
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(result),
-                }
-            )
-
-
+            # Send the result back to the LLM
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(result),
+            })
